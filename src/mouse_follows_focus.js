@@ -72,6 +72,20 @@ export default class MouseFollowsFocusModule extends Submodule {
                     window,
                 ),
             );
+        
+        this._focusSignal = global.display.connect(
+            "notify::focus-window",
+            () => {
+                const win = global.display.focus_window;
+                if (
+                    win &&
+                    win.get_window_type() === Meta.WindowType.NORMAL &&
+                    !hasPointerActually(win)
+                ) {
+                    this.pointer_manager.restorePointer(win);
+                }
+            },
+        );
     }
 
     disable() {
@@ -79,6 +93,11 @@ export default class MouseFollowsFocusModule extends Submodule {
         this.source_manager?.destroy();
         this.pointer_watcher?.remove();
 
+        if (this._focusSignal) {
+            global.display.disconnect(this._focusSignal);
+            this._focusSignal = null;
+        }
+        
         this.pointer_manager = null;
         this.signal_manager = null;
         this.pointer_watcher = null;
